@@ -1,0 +1,230 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh_Hans">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>异步支持 &#8212; Django 3.0.9.dev 文档</title>
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="index" title="索引" href="../genindex.html" />
+    <link rel="search" title="搜索" href="../search.html" />
+    <link rel="next" title="操作指南" href="../howto/index.html" />
+    <link rel="prev" title="扩展包" href="external-packages.html" />
+
+
+
+ 
+<script type="text/javascript" src="../templatebuiltins.js"></script>
+<script type="text/javascript">
+(function($) {
+    if (!django_template_builtins) {
+       // templatebuiltins.js missing, do nothing.
+       return;
+    }
+    $(document).ready(function() {
+        // Hyperlink Django template tags and filters
+        var base = "../ref/templates/builtins.html";
+        if (base == "#") {
+            // Special case for builtins.html itself
+            base = "";
+        }
+        // Tags are keywords, class '.k'
+        $("div.highlight\\-html\\+django span.k").each(function(i, elem) {
+             var tagname = $(elem).text();
+             if ($.inArray(tagname, django_template_builtins.ttags) != -1) {
+                 var fragment = tagname.replace(/_/, '-');
+                 $(elem).html("<a href='" + base + "#" + fragment + "'>" + tagname + "</a>");
+             }
+        });
+        // Filters are functions, class '.nf'
+        $("div.highlight\\-html\\+django span.nf").each(function(i, elem) {
+             var filtername = $(elem).text();
+             if ($.inArray(filtername, django_template_builtins.tfilters) != -1) {
+                 var fragment = filtername.replace(/_/, '-');
+                 $(elem).html("<a href='" + base + "#" + fragment + "'>" + filtername + "</a>");
+             }
+        });
+    });
+})(jQuery);</script>
+
+  </head><body>
+
+    <div class="document">
+  <div id="custom-doc" class="yui-t6">
+    <div id="hd">
+      <h1><a href="../index.html">Django 3.0.9.dev 文档</a></h1>
+      <div id="global-nav">
+        <a title="Home page" href="../index.html">Home</a>  |
+        <a title="Table of contents" href="../contents.html">Table of contents</a>  |
+        <a title="Global index" href="../genindex.html">Index</a>  |
+        <a title="Module index" href="../py-modindex.html">Modules</a>
+      </div>
+      <div class="nav">
+    &laquo; <a href="external-packages.html" title="扩展包">previous</a>
+     |
+    <a href="index.html" title="使用 Django" accesskey="U">up</a>
+   |
+    <a href="../howto/index.html" title="操作指南">next</a> &raquo;</div>
+    </div>
+
+    <div id="bd">
+      <div id="yui-main">
+        <div class="yui-b">
+          <div class="yui-g" id="topics-async">
+            
+  <div class="section" id="s-asynchronous-support">
+<span id="asynchronous-support"></span><h1>异步支持<a class="headerlink" href="#asynchronous-support" title="永久链接至标题">¶</a></h1>
+<div class="versionadded">
+<span class="title">New in Django 3.0.</span> </div>
+<p>Django 已对异步 (&quot;async&quot;) Python 进行了支持，但还没有支持异步视图或中间件；它们可能在未来的版本中支持。</p>
+<p>对异步生态系统的其他部分的支持有限；换句话说，Django 原生的使用 <a class="reference internal" href="../howto/deployment/asgi/index.html"><span class="doc">ASGI</span></a> 和一些异步安全的支持。</p>
+<div class="section" id="s-async-safety">
+<span id="s-id1"></span><span id="async-safety"></span><span id="id1"></span><h2>异步安全<a class="headerlink" href="#async-safety" title="永久链接至标题">¶</a></h2>
+<p>Django 的一些关键部分无法在异步环境里安全运行，因为它们的全局状态不支持协同工作。这些 Django 部分被归类为 &quot;不安全异步&quot;，并且受到保护，无法在异步环境中执行。ORM 是主要的例子，但其他部分也以这种方式受到保护。</p>
+<p>如果你试着从具有 <em>运行事件循环</em> 的线程中运行这些部分中的任何一个，你将得到 <a class="reference internal" href="../ref/exceptions.html#django.core.exceptions.SynchronousOnlyOperation" title="django.core.exceptions.SynchronousOnlyOperation"><code class="xref py py-exc docutils literal notranslate"><span class="pre">SynchronousOnlyOperation</span></code></a> 错误。注意，你不必在异步函数内部即可得到这个错误。如果你直接从一个异步函数中调用了同步函数，而没有经过类似 <a class="reference internal" href="#asgiref.sync.sync_to_async" title="asgiref.sync.sync_to_async"><code class="xref py py-func docutils literal notranslate"><span class="pre">sync_to_async()</span></code></a> 或线程池之类的操作，那么它也可能会报这个错误，因为你的代码仍然在异步上下文中运行。</p>
+<p>如果遇到了这个错误，你应该修改代码以免在异步上下文中调用这个有问题的代码；相反，你可以编写代码在同步函数中与不安全异步交流，使用  <a class="reference internal" href="#asgiref.sync.sync_to_async" title="asgiref.sync.sync_to_async"><code class="xref py py-func docutils literal notranslate"><span class="pre">asgiref.sync.sync_to_async()</span></code></a> 或在它自己线程内部运行任何其他首选方式来调用。</p>
+<p>如果你 <em>绝对</em> 迫切需要从异步上下文中运行此代码 - 比如，它是由外部环境强加给你，并且你确定它不会同时运行（例如在 <a class="reference external" href="https://jupyter.org/">Jupyter</a> notebook 里），那你可以使用 <code class="docutils literal notranslate"><span class="pre">DJANGO_ALLOW_ASYNC_UNSAFE</span></code> 环境变量来禁用告警。</p>
+<div class="admonition warning">
+<p class="first admonition-title">警告</p>
+<p class="last">如果启用了这个选项，并且同时访问 Django 的异步不安全 (async-unsafe) 部分，你会遇到数据丢失或损坏，所以一定要非常小心，并且不要再生产环境里这样使用。</p>
+</div>
+<p>如果你需要在 Python 中执行此操作，请使用 <code class="docutils literal notranslate"><span class="pre">os.environ</span></code> ：</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;DJANGO_ALLOW_ASYNC_UNSAFE&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;true&quot;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="s-async-adapter-functions">
+<span id="async-adapter-functions"></span><h2>异步适配函数<a class="headerlink" href="#async-adapter-functions" title="永久链接至标题">¶</a></h2>
+<p>当从异步的上下文中调用同步的代码时，有必要适配调用风格，反之亦然。为此，有两个适配器功能，可从 <code class="docutils literal notranslate"><span class="pre">asgiref.sync</span></code> 包中获取：<a class="reference internal" href="#asgiref.sync.async_to_sync" title="asgiref.sync.async_to_sync"><code class="xref py py-func docutils literal notranslate"><span class="pre">async_to_sync()</span></code></a> 和 <a class="reference internal" href="#asgiref.sync.sync_to_async" title="asgiref.sync.sync_to_async"><code class="xref py py-func docutils literal notranslate"><span class="pre">sync_to_async()</span></code></a> 。它们用于同步和异步之间调用风格的转换，同时保持兼容性。</p>
+<p>这些适配函数广泛应用于 Django。<a class="reference external" href="https://pypi.org/project/asgiref/">asgiref</a> 包本身就是 Django 项目的部分，并且它在当你用 <code class="docutils literal notranslate"><span class="pre">pip</span></code> 方式安装 Django 时，会作为依赖项目自动安装。</p>
+<div class="section" id="s-async-to-sync">
+<span id="async-to-sync"></span><h3><code class="docutils literal notranslate"><span class="pre">async_to_sync()</span></code><a class="headerlink" href="#async-to-sync" title="永久链接至标题">¶</a></h3>
+<dl class="function">
+<dt id="asgiref.sync.async_to_sync">
+<code class="descname">async_to_sync</code>(<em>async_function</em>, <em>force_new_loop=False</em>)<a class="headerlink" href="#asgiref.sync.async_to_sync" title="永久链接至目标">¶</a></dt>
+<dd></dd></dl>
+
+<p>包装一个异步函数并且返回一个同步函数。可以用作直接包装器或装饰器：</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">asgiref.sync</span> <span class="k">import</span> <span class="n">async_to_sync</span>
+
+<span class="n">sync_function</span> <span class="o">=</span> <span class="n">async_to_sync</span><span class="p">(</span><span class="n">async_function</span><span class="p">)</span>
+
+<span class="nd">@async_to_sync</span>
+<span class="k">async</span> <span class="k">def</span> <span class="nf">async_function</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+<p>如果存在异步函数，那么它会在当前线程的事件循环中运行。如果没有当前事件循环，则会为异步函数专门启动一个新的事件循环，并且会在它完成后再次关闭。无论哪种情况，异步函数会在调用代码的不同线程上执行。</p>
+<p>Threadlocals 和 contextvars 值在两个方向的边界上都保持不变。</p>
+<p><a class="reference internal" href="#asgiref.sync.async_to_sync" title="asgiref.sync.async_to_sync"><code class="xref py py-func docutils literal notranslate"><span class="pre">async_to_sync()</span></code></a> 本质上是 Python 标准库中 <a class="reference external" href="https://docs.python.org/3/library/asyncio-task.html#asyncio.run" title="(在 Python v3.8)"><code class="xref py py-func docutils literal notranslate"><span class="pre">asyncio.run()</span></code></a> 函数更强大的版本。在确保 threadlocals 工作之外，当在它下面使用包装时，它也会启用 <a class="reference internal" href="#asgiref.sync.sync_to_async" title="asgiref.sync.sync_to_async"><code class="xref py py-func docutils literal notranslate"><span class="pre">sync_to_async()</span></code></a> 的 <code class="docutils literal notranslate"><span class="pre">thread_sensitive</span></code> 模式。</p>
+</div>
+<div class="section" id="s-sync-to-async">
+<span id="sync-to-async"></span><h3><code class="docutils literal notranslate"><span class="pre">sync_to_async()</span></code><a class="headerlink" href="#sync-to-async" title="永久链接至标题">¶</a></h3>
+<dl class="function">
+<dt id="asgiref.sync.sync_to_async">
+<code class="descname">sync_to_async</code>(<em>sync_function</em>, <em>thread_sensitive=False</em>)<a class="headerlink" href="#asgiref.sync.sync_to_async" title="永久链接至目标">¶</a></dt>
+<dd></dd></dl>
+
+<p>包装一个同步函数并且返回一个异步函数。可以用作直接包装器或装饰器：</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">asgiref.sync</span> <span class="k">import</span> <span class="n">sync_to_async</span>
+
+<span class="n">async_function</span> <span class="o">=</span> <span class="n">sync_to_async</span><span class="p">(</span><span class="n">sync_function</span><span class="p">)</span>
+<span class="n">async_function</span> <span class="o">=</span> <span class="n">sync_to_async</span><span class="p">(</span><span class="n">sensitive_sync_function</span><span class="p">,</span> <span class="n">thread_sensitive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="nd">@sync_to_async</span>
+<span class="k">def</span> <span class="nf">sync_function</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+<p>Threadlocals 和 contextvars 值在两个方向的边界上都保持不变。</p>
+<p>同步函数倾向于假设它们在主线程中运行时编写，因此 <a class="reference internal" href="#asgiref.sync.sync_to_async" title="asgiref.sync.sync_to_async"><code class="xref py py-func docutils literal notranslate"><span class="pre">sync_to_async()</span></code></a> 有两个线程模式：</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">thread_sensitive=False</span></code> (默认)：同步函数将在一个全新的线程中运行，该线程一旦完成，将会关闭。</li>
+<li><code class="docutils literal notranslate"><span class="pre">thread_sensitive=True</span></code>: 同步函数将与所有其它  <code class="docutils literal notranslate"><span class="pre">thread_sensitive</span></code>  函数在相同线程里运行，如果主线程是同步的并且你正在使用 <a class="reference internal" href="#asgiref.sync.async_to_sync" title="asgiref.sync.async_to_sync"><code class="xref py py-func docutils literal notranslate"><span class="pre">async_to_sync()</span></code></a> 装饰器，则该同步函数将成为主线程。</li>
+</ul>
+<p>Thread-sensitive(线程敏感)模式非常特殊，在同一个线程中运行所有函数需要做很多工作。但是请注意，它依赖于堆栈中它上面的 <a class="reference internal" href="#asgiref.sync.async_to_sync" title="asgiref.sync.async_to_sync"><code class="xref py py-func docutils literal notranslate"><span class="pre">async_to_sync()</span></code></a> 的使用，以便在主线程上正确运行。如果你使用 <code class="docutils literal notranslate"><span class="pre">asyncio.run()</span></code> (或其他选项代替)，它将退回到单独共享线程（但不是主线程）中运行 thread-sensitive 函数。</p>
+<p>在 Django 中需要这么做的原因是许多库，特别是数据库适配器，要求它们在创建时所在的同一个线程里对其进行访问，并且许多现有的 Django 代码假设它都在同一进程中运行（比如中间件将内容添加到请求中以供视图稍后使用）。</p>
+<p>我们没有引入代码潜在的兼容性问题，而是选择了添加这种模式，以便所有现有的 Django 同步代码都在同一个线程中运行，从而完全兼容异步模式。注意，同步代码始终要与调用它的异步代码保持在不同线程中，所以你应该避免在任何你编写的新代码中传递原始数据库句柄(handles)或者其他 thread-sensitive 引用。</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      
+        
+          <div class="yui-b" id="sidebar">
+            
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../contents.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">异步支持</a><ul>
+<li><a class="reference internal" href="#async-safety">异步安全</a></li>
+<li><a class="reference internal" href="#async-adapter-functions">异步适配函数</a><ul>
+<li><a class="reference internal" href="#async-to-sync"><code class="docutils literal notranslate"><span class="pre">async_to_sync()</span></code></a></li>
+<li><a class="reference internal" href="#sync-to-async"><code class="docutils literal notranslate"><span class="pre">sync_to_async()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>上一个主题</h4>
+  <p class="topless"><a href="external-packages.html"
+                        title="上一章">扩展包</a></p>
+  <h4>下一个主题</h4>
+  <p class="topless"><a href="../howto/index.html"
+                        title="下一章">操作指南</a></p>
+  <div role="note" aria-label="source link">
+    <h3>本页</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/topics/async.txt"
+            rel="nofollow">显示源代码</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>快速搜索</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="转向" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+              <h3>Last update:</h3>
+              <p class="topless">8月 03, 2020</p>
+          </div>
+        
+      
+    </div>
+
+    <div id="ft">
+      <div class="nav">
+    &laquo; <a href="external-packages.html" title="扩展包">previous</a>
+     |
+    <a href="index.html" title="使用 Django" accesskey="U">up</a>
+   |
+    <a href="../howto/index.html" title="操作指南">next</a> &raquo;</div>
+    </div>
+  </div>
+
+      <div class="clearer"></div>
+    </div>
+  </body>
+</html>
